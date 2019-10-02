@@ -1,7 +1,15 @@
 const button = document.getElementById('button')
 button.onclick = () => {
   const audioContext = new window.AudioContext()
-  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+  navigator.mediaDevices.getUserMedia({ audio: {
+    echoCancellation: false,
+    googEchoCancellation: false,
+    googAutoGainControl: false,
+    googAutoGainControl2: false,
+    googNoiseSuppression: false,
+    googHighpassFilter: false,
+    googTypingNoiseDetection: false
+  }}).then((stream) => {
     console.log('got media sources')
     // Create an AudioNode from the stream.
     const mediaStreamSource = audioContext.createMediaStreamSource(stream)
