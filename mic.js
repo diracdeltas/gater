@@ -35,7 +35,7 @@ averaging: how "smoothed" you would like the meter to be over time.
 */
 
 function createAudioMeter(audioContext, averaging) {
-	var processor = audioContext.createScriptProcessor(8192, 2, 2);
+	var processor = audioContext.createScriptProcessor(8192 * 2, 2, 2);
 	processor.onaudioprocess = volumeAudioProcess;
 	processor.volume = 0;
 	processor.averaging = averaging || 0.95;
@@ -63,7 +63,7 @@ function squareSum (buf) {
 }
 
 const gate = 0.05 // TODO: make this adjustable
-let chunk = {
+const chunk = {
   channel1: [],
   channel2: []
 }
@@ -130,9 +130,7 @@ function volumeAudioProcess (event) {
       // write chunk to a wav and clear it
       createWav(chunk)
     }
-    chunk = {
-      channel1: [],
-      channel2: []
-    }
+    chunk.channel1 = []
+    chunk.channel2 = []
   }
 }
