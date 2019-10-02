@@ -84,7 +84,7 @@ function createWav(buf) {
 		// this is would be your WAV blob
     var url = URL.createObjectURL(blob);
     var au = document.createElement('audio');
-    var li = document.createElement('li');
+    var li = document.createElement('div');
     var link = document.createElement('a');
     //add controls to the <audio> element
     au.controls = true;
@@ -100,7 +100,7 @@ function createWav(buf) {
     document.body.appendChild(li);
 	};
 	// send the channel data from our buffer to the worker
-  console.log('recording', buf)
+  console.log(`recording at samplerate ${sampleRate}`, buf)
   worker.postMessage({
     command: 'record',
     buffer: buf
@@ -120,7 +120,7 @@ function volumeAudioProcess (event) {
   const sum = squareSum(buf1) + squareSum(buf2)
   const rms = Math.sqrt(sum / (buf1.length + buf2.length))
   const prevVolume = this.volume
-  this.volume = Math.max(rms, this.volume * this.averaging)
+  this.volume = rms // Math.max(rms, this.volume * this.averaging)
   if (this.volume > gate && prevVolume > gate) {
     // part of a contiguous chunk
     chunk.channel1.push(buf1)
