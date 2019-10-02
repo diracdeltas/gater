@@ -9,9 +9,9 @@ button.onclick = () => {
     const meter = createAudioMeter(audioContext)
     mediaStreamSource.connect(meter)
   }).catch((e) => {
-    window.alert(`Error getting mic input: ${e}`)
+    document.getElementById('status').innerText =
+      `Error getting mic input: ${e}`
   })
   button.style.display = 'none'
-  document.body.innerText = 'Recording...'
+  document.getElementById('status').innerText = 'Recording...'
 }
-

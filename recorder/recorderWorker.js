@@ -17,30 +17,15 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFT
 DEALINGS IN THE SOFTWARE.
 */
 
-var recLength = 0,
-  recBuffersL = [],
-  recBuffersR = [],
-  sampleRate;
+var sampleRate;
 
 this.onmessage = function(e){
   switch(e.data.command){
     case 'init':
       init(e.data.config);
       break;
-    case 'record':
-      record(e.data.buffer);
-      break;
     case 'exportWAV':
-      exportWAV(e.data.type);
-      break;
-    case 'exportMonoWAV':
-      exportMonoWAV(e.data.type);
-      break;
-    case 'getBuffers':
-      getBuffers();
-      break;
-    case 'clear':
-      clear();
+      exportWAV(e.data.type, e.data.buffer);
       break;
   }
 };
@@ -49,45 +34,19 @@ function init(config){
   sampleRate = config.sampleRate;
 }
 
-function record(inputBuffer){
-  recBuffersL = inputBuffer.channel1;
-  recBuffersR = inputBuffer.channel2;
-  recLength = inputBuffer.channel1[0].length * inputBuffer.channel1.length;
+function exportWAV (type, inputBuffer) {
+  const recBuffersL = inputBuffer.channel1
+  const recBuffersR = inputBuffer.channel2
+  var bufferL = mergeBuffers(recBuffersL)
+  var bufferR = mergeBuffers(recBuffersR)
+  var interleaved = interleave(bufferL, bufferR)
+  var dataview = encodeWAV(interleaved)
+  var audioBlob = new Blob([dataview], { type: type })
+  this.postMessage(audioBlob)
 }
 
-function exportWAV(type){
-  var bufferL = mergeBuffers(recBuffersL, recLength);
-  var bufferR = mergeBuffers(recBuffersR, recLength);
-  var interleaved = interleave(bufferL, bufferR);
-  var dataview = encodeWAV(interleaved);
-  var audioBlob = new Blob([dataview], { type: type });
-
-  this.postMessage(audioBlob);
-  clear()
-}
-
-function exportMonoWAV(type){
-  var bufferL = mergeBuffers(recBuffersL, recLength);
-  var dataview = encodeWAV(bufferL, true);
-  var audioBlob = new Blob([dataview], { type: type });
-
-  this.postMessage(audioBlob);
-}
-
-function getBuffers() {
-  var buffers = [];
-  buffers.push( mergeBuffers(recBuffersL, recLength) );
-  buffers.push( mergeBuffers(recBuffersR, recLength) );
-  this.postMessage(buffers);
-}
-
-function clear(){
-  recLength = 0;
-  recBuffersL = [];
-  recBuffersR = [];
-}
-
-function mergeBuffers(recBuffers, recLength){
+function mergeBuffers(recBuffers){
+  const recLength = recBuffers[0].length * recBuffers.length
   var result = new Float32Array(recLength);
   var offset = 0;
   for (var i = 0; i < recBuffers.length; i++){

@@ -23,34 +23,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-/*
+function createAudioMeter (audioContext, averaging) {
+  const processor = audioContext.createScriptProcessor(8192 * 2, 2, 2)
+  processor.onaudioprocess = volumeAudioProcess
+  processor.volume = 0
+  processor.averaging = averaging || 0.95
 
-Usage:
-audioNode = createAudioMeter(audioContext,clipLevel,averaging,clipLag);
+  // this will have no effect, since we don't copy the input to the output,
+  // but works around a current Chrome bug.
+  processor.connect(audioContext.destination)
 
-audioContext: the AudioContext you're using.
-averaging: how "smoothed" you would like the meter to be over time.
-   Should be between 0 and less than 1.  Defaults to 0.95.
+  processor.shutdown = function () {
+    this.disconnect()
+    this.onaudioprocess = null
+  }
 
-*/
-
-function createAudioMeter(audioContext, averaging) {
-	var processor = audioContext.createScriptProcessor(8192 * 2, 2, 2);
-	processor.onaudioprocess = volumeAudioProcess;
-	processor.volume = 0;
-	processor.averaging = averaging || 0.95;
-
-	// this will have no effect, since we don't copy the input to the output,
-	// but works around a current Chrome bug.
-	processor.connect(audioContext.destination);
-
-	processor.shutdown =
-		function(){
-			this.disconnect();
-			this.onaudioprocess = null;
-		};
-
-	return processor;
+  return processor
 }
 
 function squareSum (buf) {
@@ -62,7 +50,7 @@ function squareSum (buf) {
   return sum
 }
 
-const gate = 0.05 // TODO: make this adjustable
+const gate = 0.01 // TODO: make this adjustable
 const chunk = {
   channel1: [],
   channel2: []
@@ -70,46 +58,42 @@ const chunk = {
 
 let sampleRate = 44100
 
-function createWav(buf) {
-  // create wav file from a PCM array
-  var worker = new Worker('./recorder/recorderWorker.js')
-	// initialize the new worker
-	worker.postMessage({
-		command: 'init',
-		config: {sampleRate}
-	});
-	// callback for `exportWAV`
-	worker.onmessage = function( e ) {
-		var blob = e.data;
-		// this is would be your WAV blob
-    var url = URL.createObjectURL(blob);
-    var au = document.createElement('audio');
-    var li = document.createElement('div');
-    var link = document.createElement('a');
-    //add controls to the <audio> element
-    au.controls = true;
-    au.src = url;
-    //link the a element to the blob
-    link.href = url;
-    link.download = new Date().toISOString() + '.wav';
-    link.innerHTML = link.download;
-    //add the new audio and a elements to the li element
-    li.appendChild(au);
-    li.appendChild(link);
-    //add the li element to the ordered list
-    document.body.appendChild(li);
-	};
-	// send the channel data from our buffer to the worker
-  console.log(`recording at samplerate ${sampleRate}`, buf)
+var worker = new window.Worker('./recorder/recorderWorker.js')
+// initialize the new worker
+worker.postMessage({
+  command: 'init',
+  config: { sampleRate }
+})
+// callback for `exportWAV`
+worker.onmessage = function (e) {
+  const blob = e.data
+  const url = URL.createObjectURL(blob)
+  const au = document.createElement('audio')
+  const li = document.createElement('li')
+  const link = document.createElement('a')
+  // add controls to the <audio> element
+  au.controls = true
+  au.src = url
+  // link the a element to the blob
+  link.href = url
+  link.download = new Date().toISOString() + '.wav'
+  link.innerHTML = link.download
+  // add the new audio and a elements to the li element
+  li.appendChild(au)
+  li.appendChild(link)
+  // add the li element to the ordered list
+  document.getElementById('list').appendChild(li)
+}
+
+function createWav () {
+  // send the channel data from our buffer to the worker
+  console.log(`exporting at samplerate ${sampleRate}`, chunk)
+  // ask the worker for a WAV
   worker.postMessage({
-    command: 'record',
-    buffer: buf
+    command: 'exportWAV',
+    buffer: chunk,
+    type: 'audio/wav'
   })
-	// ask the worker for a WAV
-	worker.postMessage({
-		command: 'exportWAV',
-		type: 'audio/wav'
-	});
 }
 
 function volumeAudioProcess (event) {
@@ -128,7 +112,7 @@ function volumeAudioProcess (event) {
   } else {
     if (chunk.channel1.length || chunk.channel2.length) {
       // write chunk to a wav and clear it
-      createWav(chunk)
+      createWav()
     }
     chunk.channel1 = []
     chunk.channel2 = []
