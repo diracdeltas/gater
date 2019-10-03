@@ -1,9 +1,8 @@
 class MicProcessor extends AudioWorkletProcessor {
   process (inputs, outputs, parameters) {
-    console.log('in mic process', inputs, outputs)
     const channels = inputs[0]
     this.volumeAudioProcess(channels)
-    return false
+    return true
   }
 
   volumeAudioProcess (channels) {
@@ -11,7 +10,6 @@ class MicProcessor extends AudioWorkletProcessor {
     const buf1 = channels[0]
     const buf2 = channels[1]
     const prevVolume = volume
-    console.log('input', channels)
     volume = rms(buf1, buf2)
     if (volume > gate && prevVolume > gate) {
       // part of a contiguous chunk
@@ -27,7 +25,7 @@ class MicProcessor extends AudioWorkletProcessor {
   }
 }
 
-const gate = 0.01 // TODO: make this adjustable
+const gate = 0.05 // TODO: make this adjustable
 const chunk = {
   channel1: [],
   channel2: []
