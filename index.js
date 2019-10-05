@@ -21,5 +21,5 @@ button.onclick = () => {
       `Error getting mic input: ${e}`
   })
   button.style.display = 'none'
-  document.getElementById('status').innerText = 'Recording...'
+  document.getElementById('status').innerText = 'Make some noise...'
 }
